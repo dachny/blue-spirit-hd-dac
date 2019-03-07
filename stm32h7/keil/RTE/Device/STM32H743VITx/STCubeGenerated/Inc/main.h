@@ -58,6 +58,16 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define FPGA_CONF_DONE_Pin GPIO_PIN_14
+#define FPGA_CONF_DONE_GPIO_Port GPIOD
+#define FPGA_nSTATUS_Pin GPIO_PIN_15
+#define FPGA_nSTATUS_GPIO_Port GPIOD
+#define FPGA_nCONFIG_Pin GPIO_PIN_6
+#define FPGA_nCONFIG_GPIO_Port GPIOC
+#define FPGA_DATA0_Pin GPIO_PIN_7
+#define FPGA_DATA0_GPIO_Port GPIOC
+#define FPGA_DCLK_Pin GPIO_PIN_8
+#define FPGA_DCLK_GPIO_Port GPIOC
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */

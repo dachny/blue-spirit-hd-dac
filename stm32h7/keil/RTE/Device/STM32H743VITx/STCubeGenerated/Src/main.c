@@ -23,7 +23,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "..\..\..\altera\blue_spirit_hd_transport.rbf.h"
+#include "..\..\..\segger-rtt\SEGGER_RTT.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -85,7 +86,7 @@ static void MX_SPI2_Init(void);
 static void MX_SPI4_Init(void);
 static void MX_UART4_Init(void);
 static void MX_UART5_Init(void);
-static void MX_USB_OTG_HS_HCD_Init(void);
+static void MX_BDMA_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -102,6 +103,8 @@ static void MX_USB_OTG_HS_HCD_Init(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
+	unsigned char uchRes = 0;
+	SEGGER_RTT_WriteString( 0, "Hello Word!!! Bggg\n");
 
   /* USER CODE END 1 */
 
@@ -138,8 +141,13 @@ int main(void)
   MX_SPI4_Init();
   MX_UART4_Init();
   MX_UART5_Init();
-  MX_USB_OTG_HS_HCD_Init();
+  MX_BDMA_Init();
   /* USER CODE BEGIN 2 */
+  	uchRes = rbf_load_fpga( 1000 );
+ 	while( uchRes != 0 )
+	{
+ 		uchRes = rbf_load_fpga( 1000 );
+	}
 
   /* USER CODE END 2 */
 
@@ -614,7 +622,7 @@ static void MX_UART5_Init(void)
   * @param None
   * @retval None
   */
-static void MX_USB_OTG_HS_HCD_Init(void)
+void MX_USB_OTG_HS_HCD_Init(void)
 {
 
   /* USER CODE BEGIN USB_OTG_HS_Init 0 */
@@ -720,6 +728,32 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(FPGA_nCONFIG_GPIO_Port, FPGA_nCONFIG_Pin, GPIO_PIN_SET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOC, FPGA_DATA0_Pin|FPGA_DCLK_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pins : FPGA_CONF_DONE_Pin FPGA_nSTATUS_Pin */
+  GPIO_InitStruct.Pin = FPGA_CONF_DONE_Pin|FPGA_nSTATUS_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : FPGA_nCONFIG_Pin */
+  GPIO_InitStruct.Pin = FPGA_nCONFIG_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(FPGA_nCONFIG_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : FPGA_DATA0_Pin FPGA_DCLK_Pin */
+  GPIO_InitStruct.Pin = FPGA_DATA0_Pin|FPGA_DCLK_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
   /*Configure GPIO pin : PC9 */
   GPIO_InitStruct.Pin = GPIO_PIN_9;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -731,6 +765,57 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void fpga_set_pin_Dclk(unsigned char uchValue)
+{
+	GPIO_PinState theGpioPinState = GPIO_PIN_RESET;
+	
+	if( uchValue !=  0x00 ) { theGpioPinState = GPIO_PIN_SET; }
+	
+	HAL_GPIO_WritePin( FPGA_DCLK_GPIO_Port, FPGA_DCLK_Pin , theGpioPinState );
+}
+
+void fpga_set_pin_Data0(unsigned char uchValue)
+{
+	GPIO_PinState theGpioPinState = GPIO_PIN_RESET;
+	
+	if( uchValue !=  0x00 ) { theGpioPinState = GPIO_PIN_SET; }
+	
+	HAL_GPIO_WritePin( FPGA_DATA0_GPIO_Port, FPGA_DATA0_Pin , theGpioPinState );
+}
+	
+	
+void fpga_set_pin_nConfig(unsigned char uchValue)
+{
+	GPIO_PinState theGpioPinState = GPIO_PIN_SET;
+	
+	if( uchValue ==  0x00 ) { theGpioPinState = GPIO_PIN_RESET; }
+	
+	HAL_GPIO_WritePin( FPGA_nCONFIG_GPIO_Port, FPGA_nCONFIG_Pin , theGpioPinState );
+
+}
+
+unsigned char fpga_get_pin_nStatus(void)
+{
+	GPIO_PinState theGpioPinState = GPIO_PIN_RESET;
+	
+	theGpioPinState =  HAL_GPIO_ReadPin( FPGA_nSTATUS_GPIO_Port, FPGA_nSTATUS_Pin );
+	
+	if( theGpioPinState == GPIO_PIN_RESET ) { return 0x00; }
+		
+	return 0x01;
+}
+
+
+unsigned char fpga_get_pin_ConfDone(void)
+{
+	GPIO_PinState theGpioPinState = GPIO_PIN_RESET;
+	
+	theGpioPinState =  HAL_GPIO_ReadPin( FPGA_CONF_DONE_GPIO_Port, FPGA_CONF_DONE_Pin );
+	
+	if( theGpioPinState == GPIO_PIN_RESET ) { return 0x00; }
+		
+	return 0x01;
+}
 
 /* USER CODE END 4 */
 

@@ -70,10 +70,10 @@
             <nStopU2X>0</nStopU2X>
           </BeforeCompile>
           <BeforeMake>
-            <RunUserProg1>0</RunUserProg1>
-            <RunUserProg2>0</RunUserProg2>
-            <UserProg1Name></UserProg1Name>
-            <UserProg2Name></UserProg2Name>
+            <RunUserProg1>1</RunUserProg1>
+            <RunUserProg2>1</RunUserProg2>
+            <UserProg1Name>copy /Y "..\..\altera\blue-spirit-hd-transport\output_files\blue_spirit_hd_transport.rbf" "altera\blue_spirit_hd_transport.rbf"</UserProg1Name>
+            <UserProg2Name>rbf2c "altera\blue_spirit_hd_transport.rbf"</UserProg2Name>
             <UserProg1Dos16Mode>0</UserProg1Dos16Mode>
             <UserProg2Dos16Mode>0</UserProg2Dos16Mode>
             <nStopB1X>0</nStopB1X>
@@ -396,6 +396,36 @@
               <FileName>stm32h7xx_it.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\RTE\Device\STM32H743VITx\STCubeGenerated\Src\stm32h7xx_it.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>segger-rtt</GroupName>
+          <Files>
+            <File>
+              <FileName>SEGGER_RTT.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\segger-rtt\SEGGER_RTT.c</FilePath>
+            </File>
+            <File>
+              <FileName>SEGGER_RTT.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\segger-rtt\SEGGER_RTT.h</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>altera</GroupName>
+          <Files>
+            <File>
+              <FileName>blue_spirit_hd_transport.rbf.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\altera\blue_spirit_hd_transport.rbf.c</FilePath>
+            </File>
+            <File>
+              <FileName>blue_spirit_hd_transport.rbf.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\altera\blue_spirit_hd_transport.rbf.h</FilePath>
             </File>
           </Files>
         </Group>
