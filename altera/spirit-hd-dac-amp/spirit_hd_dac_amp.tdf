@@ -1,5 +1,4 @@
 
-
 subdesign spirit_hd_dac_amp
 (
 	i_clk_49m152	: input;
