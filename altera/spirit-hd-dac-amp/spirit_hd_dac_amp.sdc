@@ -1,4 +1,4 @@
-## Generated SDC file "blue_spirit_hd_dac.sdc"
+## Generated SDC file "spirit_hd_dac_amp.sdc"
 
 ## Copyright (C) 2018  Intel Corporation. All rights reserved.
 ## Your use of Intel Corporation's design tools, logic functions 
@@ -19,10 +19,10 @@
 ## PROGRAM "Quartus Prime"
 ## VERSION "Version 18.1.0 Build 625 09/12/2018 SJ Standard Edition"
 
-## DATE    "Thu Mar 07 03:02:03 2019"
+## DATE    "Fri Mar 08 01:58:17 2019"
 
 ##
-## DEVICE  "10CL025YE144A7G"
+## DEVICE  "10M08SAE144C8G"
 ##
 
 
