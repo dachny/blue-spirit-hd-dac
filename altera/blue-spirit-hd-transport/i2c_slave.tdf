@@ -1,6 +1,44 @@
 
-constant STATE_READY = H"0000";
+constant STATE_READY = H"00";
 
+constant STATE_START = H"10";
+
+constant STATE_WAIT_A6 = H"26";
+constant STATE_WAIT_A5 = H"25";
+constant STATE_WAIT_A4 = H"24";
+constant STATE_WAIT_A3 = H"23";
+constant STATE_WAIT_A2 = H"22";
+constant STATE_WAIT_A1 = H"21";
+constant STATE_WAIT_A0 = H"20";
+
+constant STATE_WAIT_RW = H"2F";
+
+constant STATE_SET_ACK_A = H"2A";
+
+constant STATE_WAIT_W_D7 = H"37";
+constant STATE_WAIT_W_D6 = H"36";
+constant STATE_WAIT_W_D5 = H"35";
+constant STATE_WAIT_W_D4 = H"34";
+constant STATE_WAIT_W_D3 = H"33";
+constant STATE_WAIT_W_D2 = H"32";
+constant STATE_WAIT_W_D1 = H"31";
+constant STATE_WAIT_W_D0 = H"30";
+
+constant STATE_SET_ACK_W = H"3A";
+
+constant STATE_WAIT_R_D7 = H"47";
+constant STATE_WAIT_R_D6 = H"46";
+constant STATE_WAIT_R_D5 = H"45";
+constant STATE_WAIT_R_D4 = H"44";
+constant STATE_WAIT_R_D3 = H"43";
+constant STATE_WAIT_R_D2 = H"42";
+constant STATE_WAIT_R_D1 = H"41";
+constant STATE_WAIT_R_D0 = H"40";
+
+constant STATE_SET_ACK_R = H"4A";
+
+
+constant STATE_STOP = H"FF";
 
 
 subdesign i2c_slave
@@ -19,21 +57,29 @@ subdesign i2c_slave
 
 -- local  bus interface 
 	
-	o_addr[6..0]	: output;
+--	o_addr[6..0]	: output;
 	o_write			: output;
 	
 	i_data[7..0]	: input;
 	
-	o_data[7..0]	: output;
+--	o_data[7..0]	: output;
+
+--debug
+	the_state[7..0] : output;
+	
 )
 
 
 variable
 	the_state[7..0]	: dff;
-	the_addr[6..0]	: dff;
 	
-	the_scl_hystory	: node;
-	the_sda_hystory	: node;
+--	o_addr[6..0]	: dffe;
+	o_write			: dffe;
+	
+--	o_data[7..0]	: dffe;
+	
+	the_scl_hystory	: dff;
+	the_sda_hystory	: dff;
 	
 	the_scl_rise	: node;
 	the_scl_fail	: node;
@@ -49,10 +95,16 @@ variable
 
 begin
 	the_state[7..0].clk		= i_clk;
-	the_state[7..0].aclr	= !i_reset;
+	the_state[7..0].clrn	= !i_reset;
 	
-	the_addr[6..0].clk	= i_clk;
-	the_addr[6..0].aclr	= !i_reset;
+--	o_addr[6..0].clk	= i_clk;
+--	o_addr[6..0].prn	= !i_reset;
+
+
+	
+--	o_data[7..0].clk	= i_clk;
+--	o_data[7..0].prn	= !i_reset;
+
 	
 	the_scl_hystory.clk = i_clk;
 	the_scl_hystory.prn = !i_reset;
@@ -71,8 +123,218 @@ begin
 	the_sda_fail = ( the_sda_hystory == vcc ) & (i_sda == gnd );
 	
 	the_start	= the_scl_high & the_sda_fail;
-	the_stop	= the_scl_high & the_scl_rise;
+	the_stop	= the_scl_high & the_sda_rise;
 
+case the_state[] is
+
+---start		
+-----------------------------------------------------------------------------------------------------------------	
+	when STATE_READY =>
+		if( the_start ) 
+			then the_state[].d = STATE_START;
+			else the_state[].d = the_state[];
+		end if;
+
+
+---address		
+-----------------------------------------------------------------------------------------------------------------			
+	when STATE_START =>
+		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_A6;
+									else the_state[].d = the_state[];
+		end if;
+		
+	when STATE_WAIT_A6 =>
+		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_A5;
+									else the_state[].d = the_state[];
+		end if;
+		
+	when STATE_WAIT_A5 =>
+		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_A4;
+									else the_state[].d = the_state[];
+		end if;
+		
+	when STATE_WAIT_A4 =>
+		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_A3;
+									else the_state[].d = the_state[];
+		end if;	
+	
+	when STATE_WAIT_A3 =>
+		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_A2;
+									else the_state[].d = the_state[];
+		end if;
+	
+	when STATE_WAIT_A2 =>
+		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_A1;
+									else the_state[].d = the_state[];
+		end if;
+
+	when STATE_WAIT_A1 =>
+		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_A0;
+									else the_state[].d = the_state[];
+		end if;
+
+	when STATE_WAIT_A0 =>
+		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_RW;
+									else the_state[].d = the_state[];
+		end if;
+
+	when STATE_WAIT_RW =>
+		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		elsif	( the_scl_fail 	)	then the_state[].d = STATE_SET_ACK_A;
+									else the_state[].d = the_state[];
+		end if;
+
+	when STATE_SET_ACK_A =>
+		if		( the_stop 		)						then the_state[].d = STATE_STOP;
+		elsif	( the_scl_fail & ( o_write == vcc )	)	then the_state[].d = STATE_WAIT_W_D7;
+		elsif	( the_scl_fail & ( o_write == gnd )	)	then the_state[].d = STATE_WAIT_R_D7;
+														else the_state[].d = the_state[];
+		end if;	
+
+---write		
+-----------------------------------------------------------------------------------------------------------------		
+	when STATE_WAIT_W_D7 =>
+		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_W_D6;
+									else the_state[].d = the_state[];
+		end if;
+	
+	when STATE_WAIT_W_D6 =>
+		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_W_D5;
+									else the_state[].d = the_state[];
+		end if;
+		
+	when STATE_WAIT_W_D5 =>
+		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_W_D4;
+									else the_state[].d = the_state[];
+		end if;
+	
+	when STATE_WAIT_W_D4 =>
+		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_W_D3;
+									else the_state[].d = the_state[];
+		end if;	
+	when STATE_WAIT_W_D3 =>
+		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_W_D2;
+									else the_state[].d = the_state[];
+		end if;
+	
+	when STATE_WAIT_W_D2 =>
+		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_W_D1;
+									else the_state[].d = the_state[];
+		end if;
+		
+	when STATE_WAIT_W_D1 =>
+		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_W_D0;
+									else the_state[].d = the_state[];
+		end if;
+	
+	when STATE_WAIT_W_D0 =>
+		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		elsif	( the_scl_fail 	)	then the_state[].d = STATE_SET_ACK_W;
+									else the_state[].d = the_state[];
+		end if;
+		
+	when STATE_SET_ACK_W =>
+		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_W_D7;
+									else the_state[].d = the_state[];
+		end if;	
+		
+---read
+-----------------------------------------------------------------------------------------------------------------		
+	when STATE_WAIT_R_D7 =>
+		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_R_D6;
+									else the_state[].d = the_state[];
+		end if;
+	
+	when STATE_WAIT_R_D6 =>
+		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_R_D5;
+									else the_state[].d = the_state[];
+		end if;
+		
+	when STATE_WAIT_R_D5 =>
+		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_R_D4;
+									else the_state[].d = the_state[];
+		end if;
+	
+	when STATE_WAIT_R_D4 =>
+		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_R_D3;
+									else the_state[].d = the_state[];
+		end if;	
+	when STATE_WAIT_R_D3 =>
+		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_R_D2;
+									else the_state[].d = the_state[];
+		end if;
+	
+	when STATE_WAIT_R_D2 =>
+		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_R_D1;
+									else the_state[].d = the_state[];
+		end if;
+		
+	when STATE_WAIT_R_D1 =>
+		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_R_D0;
+									else the_state[].d = the_state[];
+		end if;
+	
+	when STATE_WAIT_R_D0 =>
+		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		elsif	( the_scl_fail 	)	then the_state[].d = STATE_SET_ACK_R;
+									else the_state[].d = the_state[];
+		end if;
+		
+	when STATE_SET_ACK_R =>
+		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_R_D7;
+									else the_state[].d = the_state[];
+		end if;	
+		
+---stop	
+----------------------------------------------------------------------------------		
+	when STATE_STOP =>
+		if( the_start ) 
+			then the_state[].d = STATE_START;
+			else the_state[].d = STATE_READY;
+		end if;
+		
+		
+	when others =>
+		the_state[].d = STATE_READY;
+		
+end case;
+
+
+
+
+	o_sda = !	(		( the_state[] == STATE_SET_ACK_A ) 
+					#	( the_state[] == STATE_SET_ACK_W ) 
+					# 	( the_state[] == STATE_SET_ACK_R )
+				);
+
+	o_write.clk	= i_clk;
+	o_write.prn	= !i_reset;
+	o_write.ena = ( the_state[] == STATE_WAIT_RW ) # the_scl_rise;
+	o_write.d = i_sda;
 
 
 end;
