@@ -38,7 +38,6 @@ constant STATE_WAIT_R_D0 = H"40";
 constant STATE_SET_ACK_R = H"4A";
 
 
-constant STATE_STOP = H"FF";
 
 
 subdesign i2c_slave
@@ -57,26 +56,34 @@ subdesign i2c_slave
 
 -- local  bus interface 
 	
---	o_addr[6..0]	: output;
+	o_addr[6..0]	: output;
 	o_write			: output;
 	
 	i_data[7..0]	: input;
 	
---	o_data[7..0]	: output;
+	o_data[7..0]	: output;
 
 --debug
 	the_state[7..0] : output;
+	
+	the_write		: output;
+	
+	the_timeout_counter[19..0] : output;
 	
 )
 
 
 variable
+	the_timeout_counter[19..0] :dff;
+
+
 	the_state[7..0]	: dff;
 	
---	o_addr[6..0]	: dffe;
-	o_write			: dffe;
+	o_addr[6..0]	: dffe;
+	the_next_addr[6..0] : node;
+	the_write		: dffe;
 	
---	o_data[7..0]	: dffe;
+	o_data[7..0]	: dffe;
 	
 	the_scl_hystory	: dff;
 	the_sda_hystory	: dff;
@@ -91,19 +98,18 @@ variable
 
 	the_start		: node;
 	the_stop		: node;
+	
+	the_timeout		: node;
 
 
 begin
+	
+
 	the_state[7..0].clk		= i_clk;
 	the_state[7..0].clrn	= !i_reset;
 	
---	o_addr[6..0].clk	= i_clk;
---	o_addr[6..0].prn	= !i_reset;
-
-
-	
---	o_data[7..0].clk	= i_clk;
---	o_data[7..0].prn	= !i_reset;
+	o_data[7..0].clk	= i_clk;
+	o_data[7..0].prn	= !i_reset;
 
 	
 	the_scl_hystory.clk = i_clk;
@@ -124,6 +130,22 @@ begin
 	
 	the_start	= the_scl_high & the_sda_fail;
 	the_stop	= the_scl_high & the_sda_rise;
+	
+	the_timeout_counter[19..0].clk = i_clk;
+	the_timeout_counter[19..0].clrn = !i_reset;
+	
+	if( the_state[] == STATE_READY )
+	then 
+		the_timeout_counter[19..0].d = 0;
+		
+	else 
+		the_timeout_counter[19..0].d = the_timeout_counter[19..0] +1;
+		
+	end if;
+
+	the_timeout = ( the_timeout_counter[19..0] == H"FFFFF" );
+		
+	
 
 case the_state[] is
 
@@ -139,117 +161,135 @@ case the_state[] is
 ---address		
 -----------------------------------------------------------------------------------------------------------------			
 	when STATE_START =>
-		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		if		( the_stop # the_timeout )	then the_state[].d = STATE_READY;
 		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_A6;
 									else the_state[].d = the_state[];
 		end if;
 		
 	when STATE_WAIT_A6 =>
-		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		if		( the_stop # the_timeout )	then the_state[].d = STATE_READY;
+		elsif	( the_start 	)	then the_state[].d = STATE_START;
 		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_A5;
 									else the_state[].d = the_state[];
 		end if;
 		
 	when STATE_WAIT_A5 =>
-		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		if		( the_stop # the_timeout )	then the_state[].d = STATE_READY;
+		elsif	( the_start 	)	then the_state[].d = STATE_START;
 		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_A4;
 									else the_state[].d = the_state[];
 		end if;
 		
 	when STATE_WAIT_A4 =>
-		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		if		( the_stop # the_timeout )	then the_state[].d = STATE_READY;
+		elsif	( the_start 	)	then the_state[].d = STATE_START;
 		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_A3;
 									else the_state[].d = the_state[];
 		end if;	
 	
 	when STATE_WAIT_A3 =>
-		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		if		( the_stop # the_timeout )	then the_state[].d = STATE_READY;
+		elsif	( the_start 	)	then the_state[].d = STATE_START;
 		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_A2;
 									else the_state[].d = the_state[];
 		end if;
 	
 	when STATE_WAIT_A2 =>
-		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		if		( the_stop # the_timeout )	then the_state[].d = STATE_READY;
+		elsif	( the_start 	)	then the_state[].d = STATE_START;
 		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_A1;
 									else the_state[].d = the_state[];
 		end if;
 
 	when STATE_WAIT_A1 =>
-		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		if		( the_stop # the_timeout )	then the_state[].d = STATE_READY;
+		elsif	( the_start 	)	then the_state[].d = STATE_START;
 		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_A0;
 									else the_state[].d = the_state[];
 		end if;
 
 	when STATE_WAIT_A0 =>
-		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		if		( the_stop # the_timeout )	then the_state[].d = STATE_READY;
+		elsif	( the_start 	)	then the_state[].d = STATE_START;
 		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_RW;
 									else the_state[].d = the_state[];
 		end if;
 
 	when STATE_WAIT_RW =>
-		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		if		( the_stop # the_timeout )	then the_state[].d = STATE_READY;
+		elsif	( the_start 	)	then the_state[].d = STATE_START;
 		elsif	( the_scl_fail 	)	then the_state[].d = STATE_SET_ACK_A;
 									else the_state[].d = the_state[];
 		end if;
 
 	when STATE_SET_ACK_A =>
-		if		( the_stop 		)						then the_state[].d = STATE_STOP;
-		elsif	( the_scl_fail & ( o_write == vcc )	)	then the_state[].d = STATE_WAIT_W_D7;
-		elsif	( the_scl_fail & ( o_write == gnd )	)	then the_state[].d = STATE_WAIT_R_D7;
+		if		( the_stop # the_timeout )						then the_state[].d = STATE_READY;
+		elsif	( the_start 	)	then the_state[].d = STATE_START;
+		elsif	( the_scl_fail & ( the_write == vcc )	)	then the_state[].d = STATE_WAIT_W_D7;
+		elsif	( the_scl_fail & ( the_write == gnd )	)	then the_state[].d = STATE_WAIT_R_D7;
 														else the_state[].d = the_state[];
 		end if;	
 
 ---write		
 -----------------------------------------------------------------------------------------------------------------		
 	when STATE_WAIT_W_D7 =>
-		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		if		( the_stop # the_timeout )	then the_state[].d = STATE_READY;
+		elsif	( the_start 	)	then the_state[].d = STATE_START;
 		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_W_D6;
 									else the_state[].d = the_state[];
 		end if;
 	
 	when STATE_WAIT_W_D6 =>
-		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		if		( the_stop # the_timeout )	then the_state[].d = STATE_READY;
+		elsif	( the_start 	)	then the_state[].d = STATE_START;
 		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_W_D5;
 									else the_state[].d = the_state[];
 		end if;
 		
 	when STATE_WAIT_W_D5 =>
-		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		if		( the_stop # the_timeout )	then the_state[].d = STATE_READY;
+		elsif	( the_start 	)	then the_state[].d = STATE_START;
 		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_W_D4;
 									else the_state[].d = the_state[];
 		end if;
 	
 	when STATE_WAIT_W_D4 =>
-		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		if		( the_stop # the_timeout )	then the_state[].d = STATE_READY;
+		elsif	( the_start 	)	then the_state[].d = STATE_START;
 		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_W_D3;
 									else the_state[].d = the_state[];
 		end if;	
 	when STATE_WAIT_W_D3 =>
-		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		if		( the_stop # the_timeout )	then the_state[].d = STATE_READY;
+		elsif	( the_start 	)	then the_state[].d = STATE_START;
 		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_W_D2;
 									else the_state[].d = the_state[];
 		end if;
 	
 	when STATE_WAIT_W_D2 =>
-		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		if		( the_stop # the_timeout )	then the_state[].d = STATE_READY;
+		elsif	( the_start 	)	then the_state[].d = STATE_START;
 		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_W_D1;
 									else the_state[].d = the_state[];
 		end if;
 		
 	when STATE_WAIT_W_D1 =>
-		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		if		( the_stop # the_timeout )	then the_state[].d = STATE_READY;
+		elsif	( the_start 	)	then the_state[].d = STATE_START;
 		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_W_D0;
 									else the_state[].d = the_state[];
 		end if;
 	
 	when STATE_WAIT_W_D0 =>
-		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		if		( the_stop # the_timeout )	then the_state[].d = STATE_READY;
+		elsif	( the_start 	)	then the_state[].d = STATE_START;
 		elsif	( the_scl_fail 	)	then the_state[].d = STATE_SET_ACK_W;
 									else the_state[].d = the_state[];
 		end if;
 		
 	when STATE_SET_ACK_W =>
-		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		if		( the_stop # the_timeout )	then the_state[].d = STATE_READY;
+		elsif	( the_start 	)	then the_state[].d = STATE_START;
 		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_W_D7;
 									else the_state[].d = the_state[];
 		end if;	
@@ -257,65 +297,69 @@ case the_state[] is
 ---read
 -----------------------------------------------------------------------------------------------------------------		
 	when STATE_WAIT_R_D7 =>
-		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		if		( the_stop # the_timeout )	then the_state[].d = STATE_READY;
+		elsif	( the_start 	)	then the_state[].d = STATE_START;
 		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_R_D6;
 									else the_state[].d = the_state[];
 		end if;
 	
 	when STATE_WAIT_R_D6 =>
-		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		if		( the_stop # the_timeout )	then the_state[].d = STATE_READY;
+		elsif	( the_start 	)	then the_state[].d = STATE_START;
 		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_R_D5;
 									else the_state[].d = the_state[];
 		end if;
 		
 	when STATE_WAIT_R_D5 =>
-		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		if		( the_stop # the_timeout )	then the_state[].d = STATE_READY;
+		elsif	( the_start 	)	then the_state[].d = STATE_START;
 		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_R_D4;
 									else the_state[].d = the_state[];
 		end if;
 	
 	when STATE_WAIT_R_D4 =>
-		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		if		( the_stop # the_timeout )	then the_state[].d = STATE_READY;
+		elsif	( the_start 	)	then the_state[].d = STATE_START;
 		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_R_D3;
 									else the_state[].d = the_state[];
 		end if;	
 	when STATE_WAIT_R_D3 =>
-		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		if		( the_stop # the_timeout )	then the_state[].d = STATE_READY;
+		elsif	( the_start 	)	then the_state[].d = STATE_START;
 		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_R_D2;
 									else the_state[].d = the_state[];
 		end if;
 	
 	when STATE_WAIT_R_D2 =>
-		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		if		( the_stop # the_timeout )	then the_state[].d = STATE_READY;
+		elsif	( the_start 	)	then the_state[].d = STATE_START;
 		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_R_D1;
 									else the_state[].d = the_state[];
 		end if;
 		
 	when STATE_WAIT_R_D1 =>
-		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		if		( the_stop # the_timeout )	then the_state[].d = STATE_READY;
+		elsif	( the_start 	)	then the_state[].d = STATE_START;
 		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_R_D0;
 									else the_state[].d = the_state[];
 		end if;
 	
 	when STATE_WAIT_R_D0 =>
-		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		if		( the_stop # the_timeout )	then the_state[].d = STATE_READY;
+		elsif	( the_start 	)	then the_state[].d = STATE_START;
 		elsif	( the_scl_fail 	)	then the_state[].d = STATE_SET_ACK_R;
 									else the_state[].d = the_state[];
 		end if;
 		
 	when STATE_SET_ACK_R =>
-		if		( the_stop 		)	then the_state[].d = STATE_STOP;
+		if		( the_stop # the_timeout )	then the_state[].d = STATE_READY;
+		elsif	( the_start 	)	then the_state[].d = STATE_START;
 		elsif	( the_scl_fail 	)	then the_state[].d = STATE_WAIT_R_D7;
 									else the_state[].d = the_state[];
 		end if;	
 		
 ---stop	
 ----------------------------------------------------------------------------------		
-	when STATE_STOP =>
-		if( the_start ) 
-			then the_state[].d = STATE_START;
-			else the_state[].d = STATE_READY;
-		end if;
 		
 		
 	when others =>
@@ -323,18 +367,72 @@ case the_state[] is
 		
 end case;
 
+---------------sda output
+case the_state[] is
+	when STATE_WAIT_R_D7 => o_sda = i_data[7];
+	when STATE_WAIT_R_D6 => o_sda = i_data[6];
+	when STATE_WAIT_R_D5 => o_sda = i_data[5];
+	when STATE_WAIT_R_D4 => o_sda = i_data[4];
+	when STATE_WAIT_R_D3 => o_sda = i_data[3];
+	when STATE_WAIT_R_D2 => o_sda = i_data[2];
+	when STATE_WAIT_R_D1 => o_sda = i_data[1];
+	when STATE_WAIT_R_D0 => o_sda = i_data[0];
+	when STATE_SET_ACK_A => o_sda = gnd;
+	when STATE_SET_ACK_W => o_sda = gnd;
+	when STATE_SET_ACK_R => o_sda = vcc;
+	when others => o_sda = vcc;
+end case;
 
 
+				
+	o_addr[6..0].clk	= i_clk;
+	o_addr[6..0].prn	= !i_reset;
+	
+	the_next_addr[6..0] = o_addr[6..0] + 1;
+	
+	if( ( the_state[] == STATE_SET_ACK_W ) & the_scl_rise )
+	then 
+		o_addr[6..0].ena = vcc;
+		o_addr[6..0].d = the_next_addr[6..0];
+	
+	elsif( ( the_state[] == STATE_SET_ACK_R ) & the_scl_rise )
+	then
+		o_addr[6..0].ena = vcc;
+		o_addr[6..0].d = the_next_addr[6..0];
+	
+	else
 
-	o_sda = !	(		( the_state[] == STATE_SET_ACK_A ) 
-					#	( the_state[] == STATE_SET_ACK_W ) 
-					# 	( the_state[] == STATE_SET_ACK_R )
-				);
+		o_addr[6..0].d = i_sda;
+		
+		o_addr[6].ena =  ( the_state[] == STATE_WAIT_A6 ) & the_scl_rise;
+		o_addr[5].ena =  ( the_state[] == STATE_WAIT_A5 ) & the_scl_rise;
+		o_addr[4].ena =  ( the_state[] == STATE_WAIT_A4 ) & the_scl_rise;
+		o_addr[3].ena =  ( the_state[] == STATE_WAIT_A3 ) & the_scl_rise;
+		o_addr[2].ena =  ( the_state[] == STATE_WAIT_A2 ) & the_scl_rise;
+		o_addr[1].ena =  ( the_state[] == STATE_WAIT_A1 ) & the_scl_rise;
+		o_addr[0].ena =  ( the_state[] == STATE_WAIT_A0 ) & the_scl_rise;
+	
+	end if;
 
-	o_write.clk	= i_clk;
-	o_write.prn	= !i_reset;
-	o_write.ena = ( the_state[] == STATE_WAIT_RW ) # the_scl_rise;
-	o_write.d = i_sda;
+	the_write.clk	= i_clk;
+	the_write.clrn	= !i_reset;
+	the_write.ena = ( the_state[] == STATE_WAIT_RW ) & the_scl_rise;
+	the_write.d = ( i_sda == gnd );
+	
+	o_data[7..0].clk	= i_clk;
+	o_data[7..0].prn	= !i_reset;
+	o_data[7..0].d = i_sda;
+	
+	o_data[7].ena =  ( the_state[] == STATE_WAIT_W_D7 ) & the_scl_rise;
+	o_data[6].ena =  ( the_state[] == STATE_WAIT_W_D6 ) & the_scl_rise;
+	o_data[5].ena =  ( the_state[] == STATE_WAIT_W_D5 ) & the_scl_rise;
+	o_data[4].ena =  ( the_state[] == STATE_WAIT_W_D4 ) & the_scl_rise;
+	o_data[3].ena =  ( the_state[] == STATE_WAIT_W_D3 ) & the_scl_rise;
+	o_data[2].ena =  ( the_state[] == STATE_WAIT_W_D2 ) & the_scl_rise;
+	o_data[1].ena =  ( the_state[] == STATE_WAIT_W_D1 ) & the_scl_rise;
+	o_data[0].ena =  ( the_state[] == STATE_WAIT_W_D0 ) & the_scl_rise;
+
+	o_write =  ( the_state[] == STATE_SET_ACK_W ) & the_scl_rise;
 
 
 end;
