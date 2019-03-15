@@ -1,4 +1,15 @@
 
+------------------------------------------------------------------------------
+------          i2c_slave.tdf file
+------          Copyright (C) 2019 Alexander V Sagaidachny
+------          dachny@sibgeo.net
+------------------------------------------------------------------------------
+
+
+
+include "pin_filter.inc";
+
+
 constant STATE_READY = H"00";
 
 constant STATE_START = H"10";
@@ -37,9 +48,6 @@ constant STATE_WAIT_R_D0 = H"40";
 
 constant STATE_SET_ACK_R = H"4A";
 
-
-
-
 subdesign i2c_slave
 (
 --sys inteface
@@ -74,6 +82,7 @@ subdesign i2c_slave
 
 
 variable
+
 	the_timeout_counter[19..0] :dff;
 
 
@@ -84,6 +93,12 @@ variable
 	the_write		: dffe;
 	
 	o_data[7..0]	: dffe;
+	
+	the_scl_filter : pin_filter;
+	the_sda_filter : pin_filter;
+	
+	the_scl: node;
+	the_sda: node;
 	
 	the_scl_hystory	: dff;
 	the_sda_hystory	: dff;
@@ -110,23 +125,35 @@ begin
 	
 	o_data[7..0].clk	= i_clk;
 	o_data[7..0].prn	= !i_reset;
+	
+	the_scl_filter.i_clk = i_clk;
+	the_scl_filter.i_reset = i_reset;
+
+	the_sda_filter.i_clk = i_clk;
+	the_sda_filter.i_reset = i_reset;
+	
+	the_scl_filter.i_in = i_scl;
+	the_sda_filter.i_in = i_sda;
+	
+	the_scl = the_scl_filter.o_out;
+	the_sda = the_sda_filter.o_out;
 
 	
 	the_scl_hystory.clk = i_clk;
 	the_scl_hystory.prn = !i_reset;
-	the_scl_hystory.d = i_scl;
+	the_scl_hystory.d = the_scl;
 
 	the_sda_hystory.clk = i_clk;
 	the_sda_hystory.prn = !i_reset;
-	the_sda_hystory.d = i_sda;
+	the_sda_hystory.d = the_sda;
 	
-	the_scl_rise = ( the_scl_hystory == gnd ) & (i_scl == vcc );
-	the_scl_fail = ( the_scl_hystory == vcc ) & (i_scl == gnd );
-	the_scl_high = ( the_scl_hystory == vcc ) & (i_scl == vcc );
-	the_scl_low  = ( the_scl_hystory == gnd ) & (i_scl == gnd );
+	the_scl_rise = ( the_scl_hystory == gnd ) & (the_scl == vcc );
+	the_scl_fail = ( the_scl_hystory == vcc ) & (the_scl == gnd );
+	the_scl_high = ( the_scl_hystory == vcc ) & (the_scl == vcc );
+	the_scl_low  = ( the_scl_hystory == gnd ) & (the_scl == gnd );
 	
-	the_sda_rise = ( the_sda_hystory == gnd ) & (i_sda == vcc );
-	the_sda_fail = ( the_sda_hystory == vcc ) & (i_sda == gnd );
+	the_sda_rise = ( the_sda_hystory == gnd ) & (the_sda == vcc );
+	the_sda_fail = ( the_sda_hystory == vcc ) & (the_sda == gnd );
 	
 	the_start	= the_scl_high & the_sda_fail;
 	the_stop	= the_scl_high & the_sda_rise;
@@ -402,7 +429,7 @@ end case;
 	
 	else
 
-		o_addr[6..0].d = i_sda;
+		o_addr[6..0].d = the_sda;
 		
 		o_addr[6].ena =  ( the_state[] == STATE_WAIT_A6 ) & the_scl_rise;
 		o_addr[5].ena =  ( the_state[] == STATE_WAIT_A5 ) & the_scl_rise;
@@ -417,11 +444,11 @@ end case;
 	the_write.clk	= i_clk;
 	the_write.clrn	= !i_reset;
 	the_write.ena = ( the_state[] == STATE_WAIT_RW ) & the_scl_rise;
-	the_write.d = ( i_sda == gnd );
+	the_write.d = ( the_sda == gnd );
 	
 	o_data[7..0].clk	= i_clk;
 	o_data[7..0].prn	= !i_reset;
-	o_data[7..0].d = i_sda;
+	o_data[7..0].d = the_sda;
 	
 	o_data[7].ena =  ( the_state[] == STATE_WAIT_W_D7 ) & the_scl_rise;
 	o_data[6].ena =  ( the_state[] == STATE_WAIT_W_D6 ) & the_scl_rise;

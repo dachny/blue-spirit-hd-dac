@@ -1,0 +1,78 @@
+------------------------------------------------------------------------------
+------          pin_filter.tdf file
+------          Copyright (C) 2017 Alexander V Sagaidachny
+------          alexander@dachny.org
+------------------------------------------------------------------------------
+
+subdesign pin_filter
+(
+	i_clk 		: input;
+	i_reset 		: input;
+
+	i_in			: input;
+	o_out			: output;
+)
+
+variable
+	
+	the_counter[3..0] : dff;
+	
+	o_out					: dff;	
+
+
+begin
+	the_counter[3..0].clrn = !( ( i_in == gnd ) & ( i_reset == vcc ) );
+	the_counter[3..0].prn = !( ( i_in == vcc ) & ( i_reset == vcc ) );
+	
+	the_counter[3..0].clk = i_clk;
+	
+	o_out.clrn = !( ( i_in == gnd ) & ( i_reset == vcc ) );
+	o_out.prn = !( ( i_in == vcc ) & ( i_reset == vcc ) );
+	
+	o_out.clk = i_clk;
+
+	if( o_out == vcc )
+	then
+		
+		if( i_in == vcc )
+		then
+			the_counter[3..0].d = H"F";
+			o_out.d = vcc;
+		else
+			if( the_counter[3..0] > 0 )
+			then
+				the_counter[3..0].d = the_counter[3..0] - 1;
+				o_out.d = vcc;
+
+			else
+				the_counter[3..0].d = 0;
+				o_out.d = gnd;
+			
+			end if;
+		
+		end if;
+	
+	
+	else
+	
+		if( i_in == vcc )
+		then
+			if( the_counter[3..0] < H"F" )
+			then
+				the_counter[3..0].d = the_counter[3..0] + 1;
+				o_out.d = gnd;
+
+			else
+				the_counter[3..0].d = H"F";
+				o_out.d = vcc;
+			
+			end if;
+		else
+			the_counter[3..0].d = 0;
+			o_out.d = gnd;
+		
+		end if;	
+	
+	end if;
+
+end;	
